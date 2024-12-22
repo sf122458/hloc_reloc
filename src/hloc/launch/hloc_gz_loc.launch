@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<launch>
+
+    <include file="$(find px4)/launch/camera_mavros.launch">
+        <arg name="world" default="/home/ps/project/gazebo/town.world"/>
+    </include>
+
+    <node pkg="flight" type="controller.py" name="flight_test" required="true" output="screen" />
+    
+    <node pkg="hloc" type="gz_loc.py" name="hloc_db" required="true" output="screen" />
+</launch>

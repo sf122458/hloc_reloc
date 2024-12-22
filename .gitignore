@@ -1,0 +1,12 @@
+.catkin_tools/
+.vscode/
+build/
+devel/
+install/
+.catkin_workspace
+src/camera
+src/offboard_py
+src/realsense-ros
+src/track
+src/uav_positioning
+src/CMakeLists.txt

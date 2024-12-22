@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+
+    <!-- Include the MAVROS node with SITL and Gazebo -->
+    <include file="$(find px4)/launch/camera_mavros.launch">
+        <arg name="world" default="/home/ps/project/gazebo/town.world"/>
+    </include>
+
+    <node pkg="flight" type="controller.py" name="flight_test" required="true" output="screen" />
+</launch>

@@ -1,0 +1,1 @@
+rostopic pub -1 /take_photo std_msgs/Bool True

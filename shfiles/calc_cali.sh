@@ -1,0 +1,1 @@
+rostopic pub -1 /calibrate std_msgs/Empty "{}"
