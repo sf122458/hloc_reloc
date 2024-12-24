@@ -1,0 +1,1 @@
+rostopic pub -1 /set_yaw std_msgs/Float32 "data: $1"

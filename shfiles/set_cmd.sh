@@ -1,0 +1,1 @@
+rostopic pub -1 set_cmd std_msgs/String "data: '$1'"

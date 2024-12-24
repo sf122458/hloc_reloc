@@ -4,7 +4,7 @@ import rospy
 from geometry_msgs.msg import PoseStamped, TwistStamped
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, CommandBoolRequest, SetMode, SetModeRequest
-from std_msgs.msg import String
+from std_msgs.msg import String, Float32
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from utils import dist, unwrap_pose
@@ -34,8 +34,10 @@ class BasicDroneController:
         rospy.wait_for_service("mavros/set_mode")
         self.set_mode_client = rospy.ServiceProxy("mavros/set_mode", SetMode)
 
-        rospy.Subscriber("cmd", String, self.cmd_cb)
+        rospy.Subscriber("set_cmd", String, self.cmd_cb)
         rospy.Subscriber("set_pos", PoseStamped, self.set_pos_cb)
+        rospy.Subscriber("set_pos_delta", PoseStamped, self.set_pos_delta_cb)
+        rospy.Subscriber("set_yaw", Float32, self.set_yaw_cb)
 
     # callback functions
     def state_cb(self, msg):
@@ -54,6 +56,24 @@ class BasicDroneController:
         self.target_pos.pose.position.x = msg.pose.position.x
         self.target_pos.pose.position.y = msg.pose.position.y
         self.target_pos.pose.position.z = msg.pose.position.z
+
+    def set_pos_delta_cb(self, msg: PoseStamped):
+        if abs(msg.pose.position.x) > 3 or abs(msg.pose.position.y) > 3 or abs(msg.pose.position.z) > 3:
+            rospy.logwarn("Delta position too large, set_pos_delta ignored")
+            return
+        if self.target_pos.pose.position.z + msg.pose.position.z < 0:
+            rospy.logwarn("Target position below ground, set_pos_delta ignored")
+            return
+        self.target_pos.pose.position.x += msg.pose.position.x
+        self.target_pos.pose.position.y += msg.pose.position.y
+        self.target_pos.pose.position.z += msg.pose.position.z
+
+    def set_yaw_cb(self, msg: Float32):
+        x, y, z, w = R.from_euler('ZYX', [msg.data/180*np.pi, 0, 0]).as_quat()
+        self.target_pos.pose.orientation.x = x
+        self.target_pos.pose.orientation.y = y
+        self.target_pos.pose.orientation.z = z
+        self.target_pos.pose.orientation.w = w
 
     # basic cmd
     def init_stream(self, rate, n=100):
@@ -82,7 +102,7 @@ class BasicDroneController:
         else:
             rospy.loginfo("Setting mode to %s unsuccessful", mode)
 
-    def takeoff(self, z=5):
+    def takeoff(self, z=1):
         rospy.loginfo("Connecting to Autopilot")
         while not self.current_state.connected:
             self.rate.sleep()
@@ -96,11 +116,11 @@ class BasicDroneController:
 
         self.target_pos = PoseStamped()
         self.target_pos.pose.position.z = z
-        x, y, z, w = R.from_euler('ZYX', [np.pi/2*0.8, 0, 0]).as_quat()
-        self.target_pos.pose.orientation.x = x
-        self.target_pos.pose.orientation.y = y
-        self.target_pos.pose.orientation.z = z
-        self.target_pos.pose.orientation.w = w
+        # x, y, z, w = R.from_euler('ZYX', [np.pi/2*0.8, 0, 0]).as_quat()
+        # self.target_pos.pose.orientation.x = x
+        # self.target_pos.pose.orientation.y = y
+        # self.target_pos.pose.orientation.z = z
+        # self.target_pos.pose.orientation.w = w
 
         while dist(unwrap_pose(self.local_pos)[0], unwrap_pose(self.target_pos)[0]) > 0.1:
             if self.current_state.mode != "OFFBOARD":
@@ -130,7 +150,7 @@ if __name__ == "__main__":
 
     drone = BasicDroneController()
 
-    drone.takeoff(5)
+    # drone.takeoff(1)
     drone.main()
 
     rospy.spin()
